@@ -20,6 +20,10 @@ CPlayer::~CPlayer(){
  */
 bool CPlayer::Load(void){
 	// メッシュの読み込み
+	if (!m_Mesh.Load("player.mom"))
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -27,18 +31,68 @@ bool CPlayer::Load(void){
  * 初期化
  */
 void CPlayer::Initialize(void){
+	m_Pos = Vector3(0.0f, 0.0f, -FIELD_HALF_Z + 2.0f);
+	m_RotZ = 0;
 }
 
 /**
  * 更新
  */
 void CPlayer::Update(void){
+	float Roll = 0;
+
+	float spd = 0;
+
+	//キー移動
+	if (g_pInput->IsKeyHold(MOFKEY_LEFT))
+	{
+		m_Pos.x = max(m_Pos.x - PLAYER_SPEED, -FIELD_HALF_X);
+		Roll -= MOF_MATH_PI;
+		m_Spd++;
+	}
+
+	if (g_pInput->IsKeyHold(MOFKEY_RIGHT))
+	{
+		m_Pos.x = min(m_Pos.x + PLAYER_SPEED, FIELD_HALF_X);
+		Roll += MOF_MATH_PI;
+		m_Spd++;
+	}
+
+	if (g_pInput->IsKeyHold(MOFKEY_UP))
+	{
+		m_Pos.z = min(m_Pos.z + PLAYER_SPEED, FIELD_HALF_Z);
+		m_Spd++;
+	}
+
+	if (g_pInput->IsKeyHold(MOFKEY_DOWN))
+	{
+		m_Pos.z = max(m_Pos.z - PLAYER_SPEED, -FIELD_HALF_Z);
+
+	}
+
+	//回転
+	float RotSpeed = MOF_ToRadian(10);
+	if (Roll == 0)
+	{
+		RotSpeed = min(abs(m_RotZ) * 0.1f, RotSpeed);
+	}
+	if (abs(m_RotZ) <= RotSpeed || signbit(m_RotZ) != signbit(Roll))
+	{
+		m_RotZ += Roll;
+	}
+	m_RotZ -= copysignf(min(RotSpeed, abs(m_RotZ)), m_RotZ);
 }
 
 /**
  * 描画
  */
 void CPlayer::Render(void){
+	//ワールド行列作成
+	CMatrix44 matworld;
+	matworld.RotationZ(m_RotZ);
+	matworld.SetTranslation(m_Pos);
+	//メッシュ描画
+	m_Mesh.Render(matworld);
 }
 
 /**
@@ -54,4 +108,5 @@ void CPlayer::RenderDebugText(void){
  * 解放
  */
 void CPlayer::Release(void){
+	m_Mesh.Release();
 }
